@@ -1,12 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Web Search Engine</title>
-        <link rel="stylesheet" href="styles.css">
-    </head>
-    <body>
-        <h1>Web Search Engine</h1>
-        <input type="text" id="searchInput" placeholder="Enter your search query">
-        <button id="searchButton">Search</button>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KWIC Search Engine</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand" href="#search" aria-label="KWIC Search Engine home">
+                <div class="brand-mark" aria-hidden="true">⌕</div>
+                <div>
+                    <p class="brand-name">KWIC Search Engine</p>
+                    <p class="brand-subtitle">Advanced Software Architecture</p>
+                </div>
+            </a>
+
+            <nav class="site-nav" aria-label="Main navigation">
+                <a href="#search">Search</a>
+                <a href="#about">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" id="search" aria-labelledby="page-title">
+            <div class="hero-content">
+                <h1 id="page-title">KWIC Search Engine</h1>
+                <p class="hero-description">
+                    A KWIC architecture-based search engine for exploring indexed content and retrieving relevant results.
+                </p>
+
+                <form class="search-form" id="searchForm" role="search">
+                    <label class="sr-only" for="searchInput">Search the indexed content</label>
+                    <div class="search-box">
+                        <span class="search-icon" aria-hidden="true">⌕</span>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            name="query"
+                            placeholder="Enter a keyword or phrase"
+                            autocomplete="off"
+                        >
+                        <button type="submit" id="searchButton">Search</button>
+                    </div>
+                </form>
+
+                <div class="suggestions" aria-label="Suggested searches">
+                    <span class="suggestions-label">Example searches:</span>
+                    <a href="#">software architecture</a>
+                    <a href="#">search engine</a>
+                    <a href="#">information retrieval</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-section" id="about" aria-labelledby="about-title">
+            <div>
+                <p class="section-label">PROTOTYPE | PROJECT 1 INTERIM</p>
+                <h2 id="about-title">About the Search Engine</h2>
+            </div>
+            <p>
+                Use the search bar above to submit a query. The prototype will return matching content from the indexed data source as the search functionality is implemented.
+            </p>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>KWIC Search Engine · Advanced Software Architecture Project</p>
+    </footer>
+</body>
 </html>
