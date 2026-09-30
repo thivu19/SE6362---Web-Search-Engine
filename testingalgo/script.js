@@ -1,28 +1,48 @@
-import fs from 'fs';
-import zlib from 'zlib';
-const DATABASE = []; 
-const compressedBuffer = fs.readFileSync('wet.paths.gz');
-const decompressedText = zlib.gunzipSync(compressedBuffer).toString('utf-8');
-const allPaths = decompressedText.split('\n').map(line => line.trim()).filter(Boolean);
-let targetUri = "";
-let extractedText = "";
+const DATABASE = [
+  "Software architecture defines the high level structure of a system",
+  "A search engine indexes documents to allow fast information retrieval",
+  "Information retrieval systems rank documents by relevance to a query",
+  "The KWIC index displays every keyword in the context of its line",
+  "Coupling and cohesion are core principles of software architecture",
+  "A web search engine crawls pages and builds an inverted index",
+  "Object oriented design encapsulates data behind public interfaces",
+  "Modularization hides design decisions that are likely to change",
+  "Circular shift rotates each word of a line to the front in turn",
+  "Alphabetic shift sorts all circular shifts into ascending order",
+  "A module should hide one design decision likely to change independently",
+  "Information hiding means objects only communicate through public methods",
+  "High cohesion and low coupling make a system easier to maintain",
+  "A caller invokes the public interface of the module it depends on",
+  "The callee method must be public for any external module to reach it",
+  "Functional cohesion means a routine performs exactly one well defined task",
+  "Sequential cohesion occurs when the output of one step feeds the next",
+  "An inverted index maps each term to the documents that contain it",
+  "A search engine ranks pages using relevance signals and link structure",
+  "Natural language processing extracts meaning from unstructured text",
+  "A database schema defines the tables columns and relationships in a system",
+  "Indexing speeds up queries at the cost of extra storage and write time",
+  "A hash table provides average constant time lookup for a given key",
+  "Binary search finds a target value in a sorted array efficiently",
+  "Merge sort divides an array in half and combines the sorted halves",
+  "A compiler translates source code into an executable form",
+  "A lexer breaks source text into a stream of tokens for the parser",
+  "A parser builds a syntax tree from a stream of tokens",
+  "An optimizer rewrites code to improve performance without changing behavior",
+  "A cache stores recent results so repeated requests skip recomputation",
+  "A session only persists in the browser until the tab or window closes",
+  "Local storage persists data in the browser across sessions and reloads",
+  "An application programming interface defines how two systems communicate",
+  "REST APIs expose resources through a fixed set of HTTP methods",
+  "A client sends a request and a server returns a formatted response",
+  "Version control tracks changes to source code over time",
+  "A pull request proposes a set of changes for review before merging",
+  "Unit tests verify that an individual function behaves as expected",
+  "Integration tests verify that multiple components work together correctly",
+  "A prototype is a working model used to validate a design early"
+];
 
-for (const record of DATABASE) {
-    if (record.includes('WARC-Target-URI:')) {
-        
-        // Extract the URI variable
-        const uriMatch = record.match(/WARC-Target-URI:\s*([^\r\n]+)/);
-        targetUri = uriMatch ? uriMatch[1] : "";
-
-        // Extract the text body variable (WET separates metadata from content via a double newline)
-        const parts = record.split('\r\n\r\n');
-        extractedText = parts.slice(1).join('\r\n\r\n').trim(); 
-        DATABASE.push('$[targetURI] + " , " + $[extractedText]');
-
-    }
-}
 const LineStorage = (function () {
-    let storage = []; 
+    let storage = [];
 
     function tokenize(lineText) {
         return lineText.trim().split(/\s+/).filter(Boolean);
@@ -31,13 +51,13 @@ const LineStorage = (function () {
     return {
         // PUBLIC
         LoadLines(lines) {
-            storage = lines.map(tokenize);
+            storage = lines.map(tokenize).filter(words => words.length);
         },
         Word(l) {
             return storage[l] ? storage[l].length : 0;
         },
         WordAt(l, w) {
-            return storage[l][w];
+            return storage[l] ? storage[l][w] : undefined;
         },
         LineCount() {
             return storage.length;
@@ -47,24 +67,22 @@ const LineStorage = (function () {
 
 const Input = (function () {
     return {
-        ReadAndStore(lines) {
-            LineStorage.LoadLines(lines);
+        ReadAndStore() {
+            LineStorage.LoadLines(DATABASE);
         }
     };
 })();
 
 // Circular Shift + Noise Eliminator
 const CircularShift = (function () {
-    
-    let shifts = []; 
+    let shifts = [];
     const noiseWords = new Set([
         "a", "an", "the", "of", "to", "in", "is", "and", "for",
         "on", "by", "its", "are", "that", "this"
     ]);
 
-    function csSetchar(s, words) {
-        
-        shifts[s] = words;
+    function csSetchar(s, line, words) {
+        shifts[s] = { line, words };
     }
 
     return {
@@ -78,22 +96,25 @@ const CircularShift = (function () {
                     for (let w = 0; w < n; w++) {
                         rotated.push(LineStorage.WordAt(l, (w + start) % n));
                     }
-                    csSetchar(s, rotated);
+                    csSetchar(s, l, rotated);
                     s++;
                 }
             }
         },
-        CSWord(s) {
-            return shifts[s].length;
-        },
-        CSWordAt(s, w) {
-            return shifts[s][w];
-        },
         CSCount() {
             return shifts.length;
         },
+        CSWord(s) {
+            return shifts[s] ? shifts[s].words.length : 0;
+        },
+        CSWordAt(s, w) {
+            return shifts[s] ? shifts[s].words[w] : undefined;
+        },
+        CSLineOf(s) {
+            return shifts[s] ? shifts[s].line : -1;
+        },
         CSIsNoise(word) {
-            return noiseWords.has(word.toLowerCase());
+            return noiseWords.has(String(word).toLowerCase());
         }
     };
 })();
@@ -102,37 +123,38 @@ const AlphabeticShift = (function () {
     let order = [];
 
     function sortKeyFor(s) {
-        const n = CircularShift.CSWord(s);
-        for (let w = 0; w < n; w++) {
-            const word = CircularShift.CSWordAt(s, w);
-            if (!CircularShift.CSIsNoise(word)) return word.toLowerCase();
+        const words = [];
+        for (let w = 0; w < CircularShift.CSWord(s); w++) {
+            words.push(CircularShift.CSWordAt(s, w).toLowerCase());
         }
-        return CircularShift.CSWordAt(s, 0).toLowerCase();
+        return words.join(" ");
     }
 
     return {
         Alpha() {
             const keys = [];
             for (let s = 0; s < CircularShift.CSCount(); s++) {
+                if (CircularShift.CSIsNoise(CircularShift.CSWordAt(s, 0))) continue;
                 keys.push({ s, key: sortKeyFor(s) });
             }
-            keys.sort((a, b) => a.key.localeCompare(b.key));
+            keys.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.s - b.s));
             order = keys.map(k => k.s);
-        },
-        ith(i) {
-            return order[i];
         },
         Count() {
             return order.length;
+        },
+        ith(i) {
+            return order[i];
         }
     };
 })();
 
 const Output = (function () {
-    function restOf(s) {
-        const n = CircularShift.CSWord(s);
+    function wordsOf(s, from) {
         const words = [];
-        for (let w = 1; w < n; w++) words.push(CircularShift.CSWordAt(s, w));
+        for (let w = from; w < CircularShift.CSWord(s); w++) {
+            words.push(CircularShift.CSWordAt(s, w));
+        }
         return words.join(" ");
     }
 
@@ -142,48 +164,67 @@ const Output = (function () {
         return div.innerHTML;
     }
 
+    function shiftHtml(s) {
+        return `<b>${escapeHtml(CircularShift.CSWordAt(s, 0))}</b> ${escapeHtml(wordsOf(s, 1))}`;
+    }
+
+    function row(cells, className) {
+        return `<tr${className ? ` class="${className}"` : ""}>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`;
+    }
+
+    function table(headers, rows) {
+        return `<div class="kwic-table"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+    }
+
+    function step(title, call, body) {
+        return `<h3>${title}</h3><p class="kwic-call">${call}</p>${body}`;
+    }
+
     function ensureStyles() {
         if (document.getElementById("kwic-generated-styles")) return;
         const style = document.createElement("style");
         style.id = "kwic-generated-styles";
         style.textContent = `
-            #kwicResults {
-                width: min(calc(100% - 40px), var(--max-width, 1120px));
-                margin: 30px auto 0;
+            #kwicResults h3 {
+                margin: 24px 0 2px;
+                font-size: 17px;
             }
-            #kwicResults .kwic-status {
-                margin: 0 0 14px;
-                color: var(--text-muted, #627b8e);
-                font-size: 0.9rem;
+            #kwicResults p {
+                margin: 4px 0;
+            }
+            #kwicResults .kwic-call {
+                color: #777;
+                font-family: monospace;
+                font-size: 13px;
+            }
+            #kwicResults .kwic-table {
+                overflow-x: auto;
+                margin: 8px 0;
             }
             #kwicResults table {
                 width: 100%;
                 border-collapse: collapse;
-                background: var(--surface, #fff);
-                border: 1px solid var(--border, #cfe3f1);
-                border-radius: 12px;
-                overflow: hidden;
+                font-size: 14px;
             }
-            #kwicResults th {
-                text-align: left;
-                font-size: 0.72rem;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--primary-dark, #175d90);
-                background: var(--surface-tint, #e5f4ff);
-                padding: 10px 14px;
-            }
+            #kwicResults th,
             #kwicResults td {
-                padding: 10px 14px;
-                border-top: 1px solid var(--border, #cfe3f1);
-                font-size: 0.92rem;
-                color: var(--text, #17324a);
+                padding: 4px 8px;
+                border: 1px solid #ccc;
+                text-align: left;
                 vertical-align: top;
             }
-            #kwicResults td.kwic-keyword {
-                white-space: nowrap;
-                font-weight: 700;
-                color: var(--primary-dark, #175d90);
+            #kwicResults th {
+                background: #f0f0f0;
+            }
+            #kwicResults tr.kwic-removed td {
+                color: #999;
+            }
+            #kwicResults details {
+                margin: 8px 0;
+            }
+            #kwicResults summary {
+                cursor: pointer;
+                color: #2c3e50;
             }
         `;
         document.head.appendChild(style);
@@ -195,8 +236,8 @@ const Output = (function () {
             container = document.createElement("section");
             container.id = "kwicResults";
             container.setAttribute("aria-live", "polite");
-            const hero = document.querySelector(".hero");
-            (hero || document.body).insertAdjacentElement("afterend", container);
+            const search = document.getElementById("search");
+            (search || document.body).insertAdjacentElement("afterend", container);
         }
         return container;
     }
@@ -206,48 +247,78 @@ const Output = (function () {
         WriteFormatted(results, query, fromCache) {
             ensureStyles();
             const container = ensureContainer();
-            container.innerHTML = "";
+            const q = escapeHtml(query.trim());
 
-            const status = document.createElement("p");
-            status.className = "kwic-status";
-            status.textContent = results.length
-                ? `${results.length} result${results.length === 1 ? "" : "s"} for "${query}"${fromCache ? " (from this session's cache)" : ""}`
-                : `No results for "${query}"`;
-            container.appendChild(status);
+            if (!results.length) {
+                const noise = CircularShift.CSIsNoise(query.trim());
+                container.innerHTML = `<p>No results for "${q}"${noise ? " (it is a noise word)" : ""}.</p>`;
+                return;
+            }
 
-            if (!results.length) return;
+            const lines = [...new Set(results.map(r => r.line))].sort((a, b) => a - b);
+            const lineSet = new Set(lines);
+            const removed = CircularShift.CSCount() - AlphabeticShift.Count();
 
-            const table = document.createElement("table");
-            table.innerHTML = `
-                <thead>
-                    <tr><th style="width:160px;">Keyword</th><th>Context</th></tr>
-                </thead>
-            `;
-            const tbody = document.createElement("tbody");
-            results.forEach(r => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td class="kwic-keyword">${escapeHtml(r.keyword)}</td>
-                    <td>${escapeHtml(r.rest)}</td>
-                `;
-                tbody.appendChild(row);
+            const storedRows = lines.map(l => {
+                const words = [];
+                for (let w = 0; w < LineStorage.Word(l); w++) words.push(escapeHtml(LineStorage.WordAt(l, w)));
+                return row([l + 1, LineStorage.Word(l), words.join(" | ")]);
             });
-            table.appendChild(tbody);
-            container.appendChild(table);
+
+            const shiftRows = [];
+            for (let s = 0; s < CircularShift.CSCount(); s++) {
+                const l = CircularShift.CSLineOf(s);
+                if (!lineSet.has(l)) continue;
+                const noise = CircularShift.CSIsNoise(CircularShift.CSWordAt(s, 0));
+                shiftRows.push(row([l + 1, shiftHtml(s), noise ? "removed (noise word)" : ""], noise ? "kwic-removed" : ""));
+            }
+
+            const sortedRows = [];
+            const fullRows = [];
+            for (let i = 0; i < AlphabeticShift.Count(); i++) {
+                const s = AlphabeticShift.ith(i);
+                const l = CircularShift.CSLineOf(s);
+                const cells = [i + 1, l + 1, shiftHtml(s)];
+                fullRows.push(row(cells));
+                if (lineSet.has(l)) sortedRows.push(row(cells));
+            }
+
+            const resultRows = results.map(r =>
+                row([`<b>${escapeHtml(r.keyword)}</b>`, escapeHtml(r.rest), r.line + 1])
+            );
+
+            container.innerHTML = `
+                <p><b>${results.length} result${results.length === 1 ? "" : "s"} for "${q}"</b>${fromCache ? " (cached)" : ""}</p>
+                ${step("Step 1: Input", "Input.ReadAndStore() → LineStorage.LoadLines()",
+                    `<p>${LineStorage.LineCount()} lines stored. Matching lines:</p>` +
+                    table(["Line", "Words", "Stored words"], storedRows))}
+                ${step("Step 2: Circular Shift", "CircularShift.Setup()",
+                    `<p>${CircularShift.CSCount()} shifts created. Shifts of the matching lines:</p>` +
+                    table(["Line", "Shift", "Note"], shiftRows))}
+                ${step("Step 3: Alphabetic Shift", "AlphabeticShift.Alpha()",
+                    `<p>${AlphabeticShift.Count()} shifts sorted, ${removed} removed for starting with a noise word.</p>` +
+                    table(["Position", "Line", "Shift"], sortedRows) +
+                    `<details><summary>Show full sorted index (${AlphabeticShift.Count()})</summary>${table(["Position", "Line", "Shift"], fullRows)}</details>`)}
+                ${step("Step 4: Output", "Output.Search() → Output.WriteFormatted()",
+                    table(["Keyword", "Context", "Line"], resultRows))}
+            `;
         },
 
         // Builds the result list for a query from the already-sorted shifts.
         // Kept here (rather than in AlphabeticShift) because "what counts as
         // a match" is a display/search concern, not a sorting concern.
         Search(query) {
-            const q = query.trim().toLowerCase();
+            const q = query.trim().toLowerCase().replace(/\s+/g, " ");
             const results = [];
             if (!q) return results;
             for (let i = 0; i < AlphabeticShift.Count(); i++) {
                 const s = AlphabeticShift.ith(i);
-                const keyword = CircularShift.CSWordAt(s, 0);
-                if (keyword.toLowerCase().startsWith(q)) {
-                    results.push({ keyword, rest: restOf(s) });
+                if (wordsOf(s, 0).toLowerCase().startsWith(q)) {
+                    results.push({
+                        line: CircularShift.CSLineOf(s),
+                        keyword: CircularShift.CSWordAt(s, 0),
+                        rest: wordsOf(s, 1)
+                    });
                 }
             }
             return results;
@@ -258,7 +329,11 @@ const Output = (function () {
 // Search cache — sessionStorage, scoped to this browser tab/session
 
 const SearchCache = (function () {
-    const STORAGE_KEY = "kwicSearchHistory";
+    const STORAGE_KEY = "kwicSearchHistory.v3";
+
+    function keyFor(query) {
+        return query.trim().toLowerCase().replace(/\s+/g, " ");
+    }
 
     function readAll() {
         try {
@@ -279,12 +354,12 @@ const SearchCache = (function () {
 
     return {
         get(query) {
-            const entry = readAll()[query.trim().toLowerCase()];
+            const entry = readAll()[keyFor(query)];
             return entry ? entry.results : null;
         },
         set(query, results) {
             const all = readAll();
-            all[query.trim().toLowerCase()] = { results, timestamp: Date.now() };
+            all[keyFor(query)] = { results, timestamp: Date.now() };
             writeAll(all);
         }
     };
@@ -296,7 +371,7 @@ const MasterControl = (function () {
 
     function buildIndexOnce() {
         if (indexBuilt) return;
-        Input.ReadAndStore(DATABASE);       // PRIVATE-to-Input, triggered by MC
+        Input.ReadAndStore();
         CircularShift.Setup();              // PUBLIC
         AlphabeticShift.Alpha();            // PUBLIC
         indexBuilt = true;
@@ -308,19 +383,14 @@ const MasterControl = (function () {
             buildIndexOnce();
 
             const cached = SearchCache.get(query);
-            if (cached) {
-                Output.WriteFormatted(cached, query, true);
-                return;
-            }
-
-            const results = Output.Search(query);
-            SearchCache.set(query, results);
-            Output.WriteFormatted(results, query, false);
+            const results = cached || Output.Search(query);
+            if (!cached) SearchCache.set(query, results);
+            Output.WriteFormatted(results, query, Boolean(cached));
         }
     };
 })();
 
- // Page wiring
+// Page wiring
 let input = "";
 
 function getInput() {
