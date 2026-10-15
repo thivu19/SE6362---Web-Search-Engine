@@ -38,7 +38,10 @@ const DATABASE = [
   "A pull request proposes a set of changes for review before merging",
   "Unit tests verify that an individual function behaves as expected",
   "Integration tests verify that multiple components work together correctly",
-  "A prototype is a working model used to validate a design early"
+  "A prototype is a working model used to validate a design early",
+  "there was a circle of life",
+  "the beauty and the beast was a great movie and story",
+  "the cat ran over the dog on the hill"
 ];
 
 const LineStorage = (function () {
