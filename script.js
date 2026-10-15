@@ -38,7 +38,10 @@ const DATABASE = [
   "A pull request proposes a set of changes for review before merging",
   "Unit tests verify that an individual function behaves as expected",
   "Integration tests verify that multiple components work together correctly",
-  "A prototype is a working model used to validate a design early"
+  "A prototype is a working model used to validate a design early",
+  "there was a circle of life",
+  "the beauty and the beast was a great movie and story",
+  "the cat ran over the dog on the hill"
 ];
 
 const LineStorage = (function () {
@@ -185,47 +188,129 @@ const Output = (function () {
         const style = document.createElement("style");
         style.id = "kwic-generated-styles";
         style.textContent = `
+        #kwicResults {
+        max-width: 1100px;
+        margin: 36px auto 48px;
+        padding: 0 24px;
+        color: #1f2937;
+        box-sizing: border-box;
+        }
+        #kwicResults > p:first-child {
+            margin: 0 0 20px;
+            font-size: 16px;
+            color: #475569;
+        }
+
+        #kwicResults h3 {
+            margin: 28px 0 8px;
+            padding: 0;
+            color: #0f2a44;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        #kwicResults p {
+            margin: 6px 0;
+            line-height: 1.5;
+        }
+
+        #kwicResults .kwic-call {
+            display: inline-block;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            color: #64748b;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        #kwicResults .kwic-table {
+            width: 100%;
+            overflow-x: auto;
+            margin: 12px 0 24px;
+            border: 1px solid #dbe2ea;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(15, 42, 68, 0.06);
+        }
+
+        #kwicResults table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        #kwicResults th,
+        #kwicResults td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            vertical-align: top;
+            line-height: 1.45;
+        }
+
+        #kwicResults th {
+            background: #f1f5f9;
+            color: #0f2a44;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        #kwicResults tr:last-child td {
+            border-bottom: none;
+        }
+
+        #kwicResults tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        #kwicResults tr.kwic-removed td {
+            color: #94a3b8;
+            background: #f8fafc;
+        }
+
+        #kwicResults details {
+            margin: 12px 0 28px;
+            border: 1px solid #dbe2ea;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        #kwicResults summary {
+            padding: 12px 14px;
+            cursor: pointer;
+            color: #0f2a44;
+            font-weight: 600;
+        }
+
+        #kwicResults details > .kwic-table {
+            margin: 0;
+            border: none;
+            border-top: 1px solid #dbe2ea;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        #kwicResults b {
+            color: #0f2a44;
+        }
+
+        @media (max-width: 768px) {
+            #kwicResults {
+                margin-top: 24px;
+                padding: 0 16px;
+            }
+
             #kwicResults h3 {
-                margin: 24px 0 2px;
                 font-size: 17px;
             }
-            #kwicResults p {
-                margin: 4px 0;
-            }
-            #kwicResults .kwic-call {
-                color: #777;
-                font-family: monospace;
-                font-size: 13px;
-            }
-            #kwicResults .kwic-table {
-                overflow-x: auto;
-                margin: 8px 0;
-            }
+
             #kwicResults table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 14px;
+                min-width: 550px;
             }
-            #kwicResults th,
-            #kwicResults td {
-                padding: 4px 8px;
-                border: 1px solid #ccc;
-                text-align: left;
-                vertical-align: top;
-            }
-            #kwicResults th {
-                background: #f0f0f0;
-            }
-            #kwicResults tr.kwic-removed td {
-                color: #999;
-            }
-            #kwicResults details {
-                margin: 8px 0;
-            }
-            #kwicResults summary {
-                cursor: pointer;
-                color: #2c3e50;
-            }
+        }
         `;
         document.head.appendChild(style);
     }
@@ -406,9 +491,11 @@ function mastercontrol() {
 
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("searchForm");
+
     if (form) {
-        // The button is type="submit" with no form action, so without this
-        // the page would just reload on every search instead of showing results.
-        form.addEventListener("submit", (e) => e.preventDefault());
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            mastercontrol();
+        });
     }
 });
