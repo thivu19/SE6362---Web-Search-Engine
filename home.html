@@ -24,6 +24,8 @@
 
         <nav class="site-nav" aria-label="Main navigation">
             <a href="#search">Search</a>
+            <a href="#add">Add Lines</a>
+            <a href="#index">Index</a>
             <a href="#about">About</a>
         </nav>
     </div>
@@ -62,24 +64,77 @@
 
             <div class="suggestions" aria-label="Suggested searches">
                 <span class="suggestions-label">Example searches:</span>
-                <span>software architecture</span>
-                <span>search engine</span>
-                <span>information retrieval</span>
+                <a href="#search" data-query="software architecture">software architecture</a>
+                <a href="#search" data-query="search engine">search engine</a>
+                <a href="#search" data-query="information retrieval">information retrieval</a>
             </div>
+        </div>
+    </section>
+
+    <section id="kwicResults" class="kwic-results" aria-live="polite"></section>
+
+    <section class="panel-section" id="add" aria-labelledby="add-title">
+        <div>
+            <p class="section-label">INPUT</p>
+
+            <h2 id="add-title">Add Lines to the Index</h2>
+
+            <p class="panel-help">
+                One line per row (or separate lines with <code>$</code>).
+                End a line with a URL to link it, e.g.
+                <code>Pipes connect filters https://example.com</code>.
+                Punctuation is removed, and empty or duplicate lines are skipped.
+                Added lines are saved and indexed right away.
+            </p>
+        </div>
+
+        <form class="add-form" id="addForm">
+            <label class="sr-only" for="linesInput">Lines to add</label>
+            <textarea id="linesInput" rows="5" placeholder="Enter one or more lines"></textarea>
+
+            <div class="add-actions">
+                <button type="submit" id="addButton" class="primary-button">Add lines</button>
+                <p id="addStatus" class="add-status" role="status"></p>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel-section" id="index" aria-labelledby="index-title">
+        <div>
+            <p class="section-label">INDEX CONTENTS</p>
+
+            <h2 id="index-title">Stored Lines and Sorted Index</h2>
+
+            <p class="panel-help" id="indexStats">Loading…</p>
+        </div>
+
+        <div class="index-views">
+            <details id="linesDetails">
+                <summary>All stored lines</summary>
+                <div class="index-body" id="linesBody"></div>
+            </details>
+
+            <details id="indexDetails">
+                <summary>Full sorted KWIC index</summary>
+                <div class="index-body" id="indexBody"></div>
+            </details>
         </div>
     </section>
 
     <section class="about-section" id="about" aria-labelledby="about-title">
         <div>
-            <p class="section-label">PROTOTYPE | PROJECT 1 INTERIM</p>
+            <p class="section-label">PROTOTYPE | PROJECT 1 FINAL</p>
 
             <h2 id="about-title">About the Search Engine</h2>
         </div>
 
         <p>
-            Use the search bar above to submit a query. The prototype
-            returns matching content from the indexed data source using
-            a KWIC-based search architecture.
+            Search returns every index entry whose keyword phrase starts with
+            your query as whole words, ignoring case ("index" finds "index",
+            not "indexing"). The index is built by abstract data types on the
+            server: Input Reader, Line Storage, Circular Shifter (with noise
+            elimination), Alphabetizer, Index Searcher and Output Writer, run
+            one line at a time by Master Control.
         </p>
     </section>
 </main>

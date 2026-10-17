@@ -1,0 +1,15 @@
+{
+  "name": "kwic-search-engine",
+  "version": "2.0.0",
+  "description": "KWIC index search engine (SE 6362 Team 2) built on Parnas Modularization 2 abstract data types",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "test:record": "node scripts/record-test-results.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
