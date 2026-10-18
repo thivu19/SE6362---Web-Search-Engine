@@ -13,10 +13,7 @@ const Api = {
             body: JSON.stringify({ text })
         });
     },
-    async storedLines() {
-        return request("/api/lines");
-    },
-    async sortedIndex() {
+    async index() {
         return request("/api/index");
     }
 };
@@ -69,27 +66,24 @@ function renderSearch(data) {
     const container = document.getElementById("kwicResults");
     const q = escapeHtml(data.query.trim());
     const s = data.stats;
-    const meta = `<p class="kwic-meta">Matched as ${escapeHtml(data.matchMode)} · ` +
-        `${data.elapsedMs} ms on the server${data.fromCache ? " (from cache)" : ""} · ` +
-        `index holds ${s.lines} lines and ${s.indexEntries} entries</p>`;
+    const meta = `<p class="kwic-meta">Matched as whole words, ignoring case · ` +
+        `${data.elapsedMs.toFixed(2)} ms on the server · ` +
+        `index holds ${s.lines} lines and ${s.entries} entries</p>`;
 
     if (!data.results.length) {
         container.innerHTML = `<p class="kwic-summary">No results for "${q}"</p>${meta}` +
-            `<p class="kwic-message">${data.isNoiseWord
-                ? `"${q}" is a noise word, so no index entry starts with it.`
-                : "No index entry starts with these words. Try fewer words or a different keyword."}</p>`;
+            `<p class="kwic-message">No index entry starts with these words. ` +
+            `Noise words (such as "the" or "of") are never keywords. Try fewer words or a different keyword.</p>`;
         return;
     }
 
     const lineRows = data.lines.map(l =>
-        row([l.line, l.wordCount, l.words.map(escapeHtml).join(" | "), link(l.url)]));
+        row([l.line, l.words.length, l.words.map(escapeHtml).join(" | "), link(l.url)]));
 
     const shiftRows = [];
     data.lines.forEach(l => l.shifts.forEach(sh => {
         const [first, ...rest] = sh.text.split(" ");
-        shiftRows.push(row([l.line, shiftHtml(first, rest.join(" ")),
-            sh.eliminated ? "eliminated (starts with a noise word)" : `kept as shift ${sh.shift}`],
-            sh.eliminated ? "kwic-removed" : ""));
+        shiftRows.push(row([l.line, sh.shift, shiftHtml(first, rest.join(" "))]));
     }));
 
     const sortedRows = data.sortedEntries.map(e => row([e.position, e.line, shiftHtml(e.keyword, e.context)]));
@@ -100,16 +94,16 @@ function renderSearch(data) {
     container.innerHTML = `
         <p class="kwic-summary">${plural(data.results.length, "result")} for "${q}"</p>
         ${meta}
-        ${step("Step 1: Input", "InputReader → LineStorage.setLine(words, url)",
+        ${step("Step 1: Input", "Input.getNextLine() → LineStorage.setLine(words, url)",
             `<p>${plural(s.lines, "line")} stored. Lines that produced a match:</p>` +
             table(["Line", "Words", "Stored words", "URL"], lineRows))}
-        ${step("Step 2: Circular Shift", "CircularShifter.shiftLine(l)",
-            `<p>${s.shiftsKept} shifts kept, ${s.shiftsEliminated} eliminated in total. Shifts of the matching lines:</p>` +
-            table(["Line", "Shift", "Note"], shiftRows))}
+        ${step("Step 2: Circular Shift", "CircularShift.setShifts(l)",
+            `<p>${s.shifts} shifts kept, ${s.noiseShifts} dropped for starting with a noise word. Kept shifts of the matching lines:</p>` +
+            table(["Line", "Shift #", "Shift"], shiftRows))}
         ${step("Step 3: Alphabetize", "Alphabetizer.alph(first, last) — merged into the sorted index",
             `<p>Sorted positions of the matching lines' shifts (full index is in the Index section below):</p>` +
             table(["Position", "Line", "Shift"], sortedRows))}
-        ${step("Step 4: Output", "IndexSearcher.search(words) → OutputWriter.formatIndexEntry(i)",
+        ${step("Step 4: Output", "Alphabetizer.getMatches(words) → Output.getEntry(i)",
             table(["Keyword", "Context", "Description", "URL"], resultRows))}
     `;
 }
@@ -156,26 +150,17 @@ async function submitLines() {
 
 // Index contents (all stored lines + full sorted index)
 
-async function loadLines() {
-    const data = await Api.storedLines();
-    document.getElementById("linesBody").innerHTML = table(["Line", "Text", "Words", "Source", "URL"],
-        data.lines.map(l => row([l.line, escapeHtml(l.text), l.wordCount, l.source, link(l.url)])));
-    return data.stats;
-}
-
-async function loadIndex() {
-    const data = await Api.sortedIndex();
-    document.getElementById("indexBody").innerHTML = table(["Position", "Keyword", "Context", "Line", "URL"],
-        data.entries.map(e => row([e.position, `<b>${escapeHtml(e.keyword)}</b>`, escapeHtml(e.context), e.line, link(e.url)])));
-    return data.stats;
-}
-
 async function refreshIndexViews() {
     const statsEl = document.getElementById("indexStats");
     try {
-        const [stats] = await Promise.all([loadLines(), loadIndex()]);
-        statsEl.textContent = `${plural(stats.lines, "line")} stored · ${stats.shiftsKept} circular shifts kept · ` +
-            `${stats.shiftsEliminated} eliminated as noise · ${stats.indexEntries} entries in the sorted index.`;
+        const data = await Api.index();
+        document.getElementById("linesBody").innerHTML = table(["Line", "Text", "Words", "URL"],
+            data.lines.map(l => row([l.line, escapeHtml(l.text), l.words.length, link(l.url)])));
+        document.getElementById("indexBody").innerHTML = table(["Position", "Keyword", "Context", "Line", "URL"],
+            data.entries.map(e => row([e.position, `<b>${escapeHtml(e.keyword)}</b>`, escapeHtml(e.context), e.line, link(e.url)])));
+        const stats = data.stats;
+        statsEl.textContent = `${plural(stats.lines, "line")} stored · ${stats.shifts} circular shifts kept · ` +
+            `${stats.noiseShifts} dropped as noise · ${stats.entries} entries in the sorted index.`;
     } catch (err) {
         statsEl.textContent = `Could not load the index: ${err.message}`;
     }

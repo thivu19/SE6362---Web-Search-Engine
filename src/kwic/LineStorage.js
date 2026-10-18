@@ -4,47 +4,38 @@
 // Lines and words are numbered from 1 (course convention).
 
 class LineStorage {
-    #lines = [];          // each: { words: string[], url, source }
+    #lines = [];        // { words: string[], url }
 
-    // PUBLIC — appends a line and returns its line number l
-    setLine(words, url, source) {
+    // PUBLIC — stores one line and returns its line number
+    setLine(words, url) {
         const l = this.#lines.length + 1;
-        this.#lines.push({ words: [], url: url || null, source: source || "user" });
+        this.#lines.push({ words: [], url: url || null });
         words.forEach((word, i) => this.#setWord(l, i + 1, word));
         return l;
     }
 
-    // PUBLIC — number of stored lines
+    // PUBLIC
     getLineCount() {
         return this.#lines.length;
     }
 
-    // PUBLIC — number of words in line l (0 if l does not exist)
+    // PUBLIC — number of words in line l
     getWordCount(l) {
-        const line = this.#lines[l - 1];
-        return line ? line.words.length : 0;
+        return this.#lines[l - 1] ? this.#lines[l - 1].words.length : 0;
     }
 
-    // PUBLIC — word w of line l (undefined if out of range)
+    // PUBLIC — word w of line l
     getWord(l, w) {
-        const line = this.#lines[l - 1];
-        return line ? line.words[w - 1] : undefined;
+        return this.#lines[l - 1] ? this.#lines[l - 1].words[w - 1] : undefined;
     }
 
-    // PUBLIC — URL associated with line l
+    // PUBLIC — URL of line l (or null)
     getUrl(l) {
-        const line = this.#lines[l - 1];
-        return line ? line.url : null;
+        return this.#lines[l - 1] ? this.#lines[l - 1].url : null;
     }
 
-    // PUBLIC — "corpus" or "user"
-    getSource(l) {
-        const line = this.#lines[l - 1];
-        return line ? line.source : null;
-    }
-
-    // PUBLIC — true if a line with the same words (ignoring case) is already stored
-    containsLine(words) {
+    // PUBLIC — true if the same words (ignoring case) are already stored
+    hasLine(words) {
         const key = words.join(" ").toLowerCase();
         return this.#lines.some(line => line.words.join(" ").toLowerCase() === key);
     }

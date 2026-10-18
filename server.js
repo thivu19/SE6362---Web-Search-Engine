@@ -7,9 +7,7 @@ const MasterControl = require("./src/kwic/MasterControl");
 
 // Web server: serves the page and exposes MasterControl's public operations as a JSON API.
 //   GET  /api/search?q=...   search the sorted index
-//   GET  /api/lines          all stored lines
-//   GET  /api/index          the full sorted index
-//   GET  /api/stats          counts
+//   GET  /api/index          all stored lines + the full sorted index
 //   POST /api/lines {text}   add lines (newline- or $-separated)
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -60,14 +58,8 @@ async function handleApi(req, res, url) {
         if (!q.trim()) return sendJson(res, 400, { error: "Enter a keyword or phrase." });
         return sendJson(res, 200, kwic.search(q));
     }
-    if (req.method === "GET" && url.pathname === "/api/lines") {
-        return sendJson(res, 200, { lines: kwic.getStoredLines(), stats: kwic.getStats() });
-    }
     if (req.method === "GET" && url.pathname === "/api/index") {
-        return sendJson(res, 200, { entries: kwic.getSortedIndex(), stats: kwic.getStats() });
-    }
-    if (req.method === "GET" && url.pathname === "/api/stats") {
-        return sendJson(res, 200, kwic.getStats());
+        return sendJson(res, 200, kwic.getIndex());
     }
     if (req.method === "POST" && url.pathname === "/api/lines") {
         let body;
@@ -103,6 +95,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-    const s = kwic.getStats();
-    console.log(`KWIC server on http://localhost:${PORT} — ${s.lines} lines, ${s.indexEntries} index entries`);
+    const s = kwic.getIndex().stats;
+    console.log(`KWIC server on http://localhost:${PORT} — ${s.lines} lines, ${s.entries} index entries`);
 });
