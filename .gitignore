@@ -5,7 +5,7 @@ data/user-lines.json
 # Local only — not needed to run the website
 docs/
 scripts/
-test/
+
 
 # Claude Code files
 CLAUDE.md
