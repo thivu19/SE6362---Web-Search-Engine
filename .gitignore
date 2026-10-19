@@ -4,7 +4,8 @@ data/user-lines.json
 
 # Local only — not needed to run the website
 docs/
-scripts/
+scripts/*
+!scripts/record-test-results.js
 
 
 # Claude Code files
