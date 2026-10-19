@@ -12,13 +12,29 @@ npm start
 
 Open http://localhost:3000. Set `PORT` to use another port.
 
+## Test
+
+```bash
+npm test
+```
+
+Runs the unit and integration tests in `test/` (Node's built-in test runner).
+
+```bash
+npm run test:record
+```
+
+Runs the same tests and saves the output, with date and Node version, to `docs/test-results.md` for the report.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `src/kwic/` | One class per ADT: MasterControl, InputReader, LineStorage, CircularShifter, Alphabetizer, IndexSearcher, OutputWriter, SearchCache |
-| `server.js` | Serves the page and a JSON API (`/api/search`, `/api/lines`, `/api/index`, `/api/stats`) |
+| `src/kwic/` | One class per ADT: MasterControl, Input, LineStorage, CircularShift, Alphabetizer, Output |
+| `server.js` | Serves the page and a JSON API: `GET /api/search?q=…`, `GET /api/index`, `POST /api/lines` |
 | `home.html`, `styles.css`, `script.js` | Front end; `script.js` only calls the API and renders the results |
+| `test/` | Unit tests per ADT and integration tests through MasterControl |
+| `scripts/record-test-results.js` | Used by `npm run test:record` |
 | `data/corpus.json` | Seed lines (description + URL) |
 | `data/noise-words.json` | Configurable noise-word list |
 | `data/user-lines.json` | Lines added through the page (created on first add) |
